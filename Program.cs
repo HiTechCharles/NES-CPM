@@ -21,13 +21,14 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
             Law[5] = "Cannot buy orange or red properties.";
             Law[6] = "Can only build on 1 monopoly.";
             Law[7] = "After getting a monopoly, you must pass go 5 times before building on it.";
-            Law[8] = "Must accept Computer's first trade with no modifications of your own.";
+            Law[8] = "Play one of the built-in scenarios from the game editor menu.";
             Law[9] = "All Players start with $500.";
             Law[10] = "All players start with $2500.";
             Law[11] = "Must keep at least $500 available at all times.";
+            Law[12] = "You may use the rewind feature once during your game.";
             Law[13] = "Play a short game.";
             Law[14] = "Begin a normal game, and use a 60 minute timer.";
-            Law[15] = "Auction off the first unowned property you land on.";
+            Law[15] = "Auction off the first Nunowned property you land on.";
             int LawNum = RNG.Next(0, 15);
             Console.WriteLine("\n\nThe rule for today's game is:  ");
             Console.WriteLine(Law[LawNum]);
@@ -78,6 +79,7 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
             PlayerName[7] = "Ollie";
 
             Console.Title = "Computer Picker for NES Monopoly";  //console title
+            Console.ForegroundColor = ConsoleColor.White;  //text color for console
 
             //explain what this program is for
             Console.WriteLine("This program picks computer opponents for");
