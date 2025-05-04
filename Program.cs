@@ -1,16 +1,21 @@
 ﻿using System;
 using System.Diagnostics.Eventing.Reader;
+using System.IO;
 
 namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IBM.
 {
     internal class Program  
     {
+        #region VARIABLES
         public static bool[] Chosen = new bool[8];  //has a player been chosen yet?
         public static string[] PlayerName = new string[8];  //player names
         public static uint seed = (uint)Math.Pow(System.DateTime.Now.TimeOfDay.TotalMilliseconds, 11.0 / 7.0);  //rng seed based on time of day
         public static Random RNG = new Random((int)seed);  //create random number generator
+        public static string LogPath = Environment.GetEnvironmentVariable("onedriveconsumer") + "\\documents\\CPM\\";  //path to save log file
+        public static string GameLog = LogPath + "GameLog.txt";  //file name to write log
+        #endregion
 
-        static void GameRule()  //things you should do during the game
+        static string GameRule()  //things you should do during the game
         {
             string[] Law = new string[16];  //stores lines for printing later
             Law[0] = "No trades until computer offers a trade first.";
@@ -29,25 +34,23 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
             Law[13] = "Play a short game.";
             Law[14] = "Begin a normal game, and use a 60 minute timer.";
             Law[15] = "Auction off the first Nunowned property you land on.";
-            int LawNum = RNG.Next(0, 15);
-            Console.WriteLine("\n\nThe rule for today's game is:  ");
-            Console.WriteLine(Law[LawNum]);
-            
+            int LawNum = RNG.Next(0, 15);  //pick a number
+            return Law[LawNum];  //return chosen name
         }
 
-        static void GetPlayer()
+        static String GetPlayer()  //pick players for the game
         {
-                int PlayerNum = RNG.Next(0, 8);  //player number picked
+            int PlayerNum;  //random player number gets chosen.  
+
+            do  //do until valid input
+            {
+                PlayerNum = RNG.Next(0, 8);  //player number picked
                 if (Chosen[PlayerNum] == false)  //if player not chosen yet
                 {
                     Chosen[PlayerNum] = true;  //set chosen status to true
-                    Console.Write(PlayerName[PlayerNum] + ", ");  //display player name
+                    return PlayerName[PlayerNum];   //return player name
                 }
-                else
-                {
-                    GetPlayer();  //this player chosen already, try again
-                }
-
+            } while (true);
         }  //pick a computer player name
 
         static int GetNumber(String Prompt)  //get a number from thee user
@@ -66,7 +69,7 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
             return rtn;
         }
 
-        static void Main(string[] args)
+        static void Main(string[] args)  
         {
             //store player names
             PlayerName[0] = "Arthur";
@@ -86,21 +89,37 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
             Console.WriteLine("the NES version of Monopoly.  All you have");
             Console.WriteLine("to do is supply how many computer players");
             Console.WriteLine("are needed.  The game will determine the");
-            Console.WriteLine("order of play.\n");
+            Console.WriteLine("CUU players to use.\n");
             
             int NumCPU = GetNumber("How many Computer opponents?  ");  //number of CPU opponents
+            Directory.CreateDirectory(LogPath);  //make sure directory exists
+            System.IO.StreamWriter NES = new System.IO.StreamWriter(GameLog, true);  //open a file for writing
+            DateTime end = DateTime.Now;  //get current date & time
             
+            //writes all choices into a log file
+            NES.WriteLine("     DATE & TIME:  " + end.ToShortDateString() + "  " + end.ToShortTimeString());
+            NES.WriteLine("   # CPU PLAYERS:  " + NumCPU.ToString());
+                NES.Write("CHOSEN CPU NAMES:  ");
+
             //prints player names in getplayer function
             Console.WriteLine("\nThe following players have been chosen for your next game:");
             
             for (int i = 0; i < NumCPU; i++)  //loop once for each player picked
             {
-                GetPlayer();  //pick an unchosen opponent
+                string GP = GetPlayer();  //pick an unchosen opponent
+                Console.Write(GP + ", ");  //write to screen
+                NES.Write(GP + ", ");  //and to file
             }
-            GameRule();
+            NES.WriteLine(); 
+            string GR = GameRule(); //pick a game rule and store it
+            Console.WriteLine("\n\nThe rule for today's game is:  " +  GR);
+            NES.WriteLine("GAME RULE CHOSEN:  " + GR);
 
+            NES.Close();
+                
             Console.WriteLine("\nPress a key to exit...");
             Console.ReadKey();  //makes sure output is seen before exiting
         }
+    
     } //end class
 } //end namespace
