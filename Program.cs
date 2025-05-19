@@ -12,7 +12,8 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
         public static uint seed = (uint)Math.Pow(System.DateTime.Now.TimeOfDay.TotalMilliseconds, 11.0 / 7.0);  //rng seed based on time of day
         public static Random RNG = new Random((int)seed);  //create random number generator
         public static string LogPath = Environment.GetEnvironmentVariable("onedriveconsumer") + "\\documents\\CPM\\";  //path to save log file
-        public static string GameLog = LogPath + "GameLog.txt";  //file name to write log
+        public static string TodayLogPath = LogPath + "Today.txt";  //file name to write log
+        public static string FullLogPath = LogPath + "Full.txt";  //file name to write log
         #endregion
 
         static string GameRule()  //things you should do during the game
@@ -93,13 +94,13 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
             
             int NumCPU = GetNumber("How many Computer opponents?  ");  //number of CPU opponents
             Directory.CreateDirectory(LogPath);  //make sure directory exists
-            System.IO.StreamWriter NES = new System.IO.StreamWriter(GameLog, true);  //open a file for writing
+            System.IO.StreamWriter TodayLog = new System.IO.StreamWriter(TodayLogPath);  //open a file for writing
             DateTime end = DateTime.Now;  //get current date & time
             
             //writes all choices into a log file
-            NES.WriteLine("     DATE & TIME:  " + end.ToShortDateString() + "  " + end.ToShortTimeString());
-            NES.WriteLine("   # CPU PLAYERS:  " + NumCPU.ToString());
-                NES.Write("CHOSEN CPU NAMES:  ");
+            TodayLog.WriteLine("     DATE & TIME:  " + end.ToShortDateString() + "  " + end.ToShortTimeString());
+            TodayLog.WriteLine("   # CPU PLAYERS:  " + NumCPU.ToString());
+                TodayLog.Write("CHOSEN CPU NAMES:  ");
 
             //prints player names in getplayer function
             Console.WriteLine("\nThe following players have been chosen for your next game:");
@@ -108,15 +109,19 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
             {
                 string GP = GetPlayer();  //pick an unchosen opponent
                 Console.Write(GP + ", ");  //write to screen
-                NES.Write(GP + ", ");  //and to file
+                TodayLog.Write(GP + ", ");  //and to file
             }
-            NES.WriteLine(); 
+            TodayLog.WriteLine(); 
             string GR = GameRule(); //pick a game rule and store it
             Console.WriteLine("\n\nThe rule for today's game is:  " +  GR);
-            NES.WriteLine("GAME RULE CHOSEN:  " + GR);
+            TodayLog.WriteLine("GAME RULE CHOSEN:  " + GR);
+            TodayLog.WriteLine("\n--------------------------------------------------\n");
+            TodayLog.Close();
 
-            NES.Close();
-                
+            //add contents of Today log and append it to FullLog
+            string TodayLogContents = File.ReadAllText(TodayLogPath);
+            File.AppendAllText(FullLogPath, TodayLogContents);
+
             Console.WriteLine("\nPress a key to exit...");
             Console.ReadKey();  //makes sure output is seen before exiting
         }
