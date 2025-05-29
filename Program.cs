@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
 using System.IO;
+using System.Speech.Synthesis;
 
 namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IBM.
 {
@@ -90,7 +92,7 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
             Console.WriteLine("the NES version of Monopoly.  All you have");
             Console.WriteLine("to do is supply how many computer players");
             Console.WriteLine("are needed.  The game will determine the");
-            Console.WriteLine("CUU players to use.\n");
+            Console.WriteLine("CPU players to use.\n");
             
             int NumCPU = GetNumber("How many Computer opponents?  ");  //number of CPU opponents
             Directory.CreateDirectory(LogPath);  //make sure directory exists
@@ -101,29 +103,45 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
             TodayLog.WriteLine("     DATE & TIME:  " + end.ToShortDateString() + "  " + end.ToShortTimeString());
             TodayLog.WriteLine("   # CPU PLAYERS:  " + NumCPU.ToString());
                 TodayLog.Write("CHOSEN CPU NAMES:  ");
-
-            //prints player names in getplayer function
-            Console.WriteLine("\nThe following players have been chosen for your next game:");
-            
+           
             for (int i = 0; i < NumCPU; i++)  //loop once for each player picked
             {
                 string GP = GetPlayer();  //pick an unchosen opponent
-                Console.Write(GP + ", ");  //write to screen
                 TodayLog.Write(GP + ", ");  //and to file
             }
             TodayLog.WriteLine(); 
             string GR = GameRule(); //pick a game rule and store it
-            Console.WriteLine("\n\nThe rule for today's game is:  " +  GR);
             TodayLog.WriteLine("GAME RULE CHOSEN:  " + GR);
-            TodayLog.WriteLine("\n--------------------------------------------------\n");
             TodayLog.Close();
 
-            //add contents of Today log and append it to FullLog
             string TodayLogContents = File.ReadAllText(TodayLogPath);
-            File.AppendAllText(FullLogPath, TodayLogContents);
+            SpeechSynthesizer MonoSpeak  = new SpeechSynthesizer();
+            MonoSpeak.Rate = 3;
 
-            Console.WriteLine("\nPress a key to exit...");
-            Console.ReadKey();  //makes sure output is seen before exiting
+            Stopwatch MonoTimer = new Stopwatch();
+            Console.WriteLine(TodayLogContents);
+            MonoSpeak.SpeakAsync(TodayLogContents);
+
+            Console.WriteLine("\n======= Press a key to start the game timer =======");
+            Console.ReadKey();
+            Console.Write("TIMER:  STARTED\t\t");
+            MonoTimer.Start();
+            Console.ReadKey();
+            Console.Write("TIMER:  STOPPED\t\t");
+            MonoTimer.Stop();
+            TimeSpan elapsed = MonoTimer.Elapsed;
+
+            StreamWriter AddToLog = new System.IO.StreamWriter(TodayLogPath, true);  //open a file for writing
+            AddToLog.WriteLine($"    Elapsed Time:  {elapsed.Hours} hours, {elapsed.Minutes} minutes, {elapsed.Seconds} seconds");
+            AddToLog.WriteLine("\n--------------------------------------------------\n");
+            AddToLog.Close();
+
+            TodayLogContents = File.ReadAllText(TodayLogPath);
+            File.AppendAllText(FullLogPath, TodayLogContents);
+            
+
+
+
         }
     
     } //end class
