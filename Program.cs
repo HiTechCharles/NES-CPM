@@ -9,12 +9,14 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
     {
         #region VARIABLES
         public static bool[] Chosen = new bool[8];  //has a player been chosen yet?
-        public static string[] PlayerName = new string[8];  //player names
+        public static string[] PlayerName = { "Arthur", "Gertrude", "Erwin", "Maude", "Carmen", "Isaac", "Penelope", "Ollie" };  //player names
         public static uint seed = (uint)Math.Pow(System.DateTime.Now.TimeOfDay.TotalMilliseconds, 11.0 / 7.0);  //rng seed based on time of day
         public static Random RNG = new Random((int)seed);  //create random number generator
         public static string LogPath = Environment.GetEnvironmentVariable("onedriveconsumer") + "\\documents\\CPM\\";  //path to save log file
-        public static string TodayLogPath = LogPath + "Today.txt";  //file name to write log
-        public static string FullLogPath = LogPath + "Full.txt";  //file name to write log
+        public static string TodayLogPath = LogPath + "Last Run.csv";  //file name to write log
+        public static string FullLogPath = LogPath + "All Time.csv";  //file name to write log
+        public static String[] ItemsToWrite = new String[7];
+        public static String[] HeadersToWrite = { "         DATE:", "         TIME:", "# CPU PLAYERS:", " PLAYER NAMES:", "    GAME RULE:", " ELAPSED TIME:", " TOTAL ASSETS:" };
         #endregion
 
         static string GameRule()  //things you should do during the game
@@ -35,7 +37,7 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
             Law[12] = "You may use the rewind feature once during your game.";
             Law[13] = "Play a short game.";
             Law[14] = "Begin a normal game, and use a 60 minute timer.";
-            Law[15] = "Auction off the first Nunowned property you land on.";
+            Law[15] = "Auction off the first unowned property you land on.";
             int LawNum = RNG.Next(0, 15);  //pick a number
             return Law[LawNum];  //return chosen name
         }
@@ -55,67 +57,79 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
             } while (true);
         }  //pick a computer player name
 
-        static int GetNumber(String Prompt)  //get a number from thee user
+        static double GetNumber(String Prompt, int Low, int High)  //get a number from thee user
         {
-            string line; int rtn = 0;  //line read and number returned
-            Console.Write(Prompt);  //display prompt message before getting input
-            line = Console.ReadLine();  //store input
-
-            rtn = int.Parse(line);
-
-            if (rtn < 1 | rtn > 8)
+            string line; double rtn = 0;  //line read and number returned
+            while (true)  //loop until valid input
             {
-                Console.WriteLine("Number must be between 1 and 8");
-                GetNumber(Prompt);
+                Console.Write(Prompt);  //display prompt message before getting input
+                line = Console.ReadLine();  //store input
+
+                if (double.TryParse(line, out rtn))  //if string can convert to double
+                {
+                    // Successfully parsed, exit the loop
+                    break;
+                }
+                else
+                {
+                    // Invalid input, prompt the user again
+                    System.Media.SystemSounds.Asterisk.Play();  //play a sound 
+                }
             }
-            return rtn;
+
+            if (rtn < Low || rtn > High)  //bounds check
+            {
+                System.Media.SystemSounds.Asterisk.Play();
+                GetNumber(Prompt, Low, High);
+            }
+
+            return rtn;  //return number, all checks passed
         }
 
-        static void Main(string[] args)  
+        static void Main(string[] args)
         {
-            //store player names
-            PlayerName[0] = "Arthur";   PlayerName[1] = "Gertrude";
-            PlayerName[2] = "Erwin";    PlayerName[3] = "Maude";
-            PlayerName[4] = "Carmen";   PlayerName[5] = "Isaac";
-            PlayerName[6] = "Penelope"; PlayerName[7] = "Ollie";
-
             Console.Title = "Computer Picker for NES Monopoly";  //console title
             Console.ForegroundColor = ConsoleColor.White;  //text color for console
 
+            #region display program purpose
             //explain what this program is for
             Console.WriteLine("This program picks computer opponents for");
             Console.WriteLine("the NES version of Monopoly.  All you have");
             Console.WriteLine("to do is supply how many computer players");
             Console.WriteLine("are needed.  The game will determine the");
             Console.WriteLine("CPU players to use.  All output from the");
-            Console.WriteLine("program  goes into a log file.");
-            
-            int NumCPU = GetNumber("How many Computer opponents?  ");  //number of CPU opponents
-            Directory.CreateDirectory(LogPath);  //make sure directory exists
-            StreamWriter TodayLog = new System.IO.StreamWriter(TodayLogPath);  //open a file for writing
-            DateTime end = DateTime.Now;  //get current date & time
-            
-            //writes all choices into a log file
-            TodayLog.WriteLine("     DATE & TIME:  " + end.ToShortDateString() + "  " + end.ToShortTimeString());
-            TodayLog.WriteLine("   # CPU PLAYERS:  " + NumCPU.ToString());
-                TodayLog.Write("CHOSEN CPU NAMES:  ");
-           
+            Console.WriteLine("program  goes into a log file.\n \n");
+            #endregion
+
+            #region write data to array
+            DateTime DT = DateTime.Now;
+            ItemsToWrite[0] = DT.ToShortDateString();
+            ItemsToWrite[1] = DT.ToShortTimeString();
+            Double NumCPU = GetNumber("How many Computer opponents?  ", 1, 7);  //number of CPU opponents
+            ItemsToWrite[2] = NumCPU.ToString();
+
             for (int i = 0; i < NumCPU; i++)  //loop once for each player picked
             {
-                TodayLog.Write(GetPlayer() + ", ");  //write player names to file
+                ItemsToWrite[3] += GetPlayer() + " - ";  //write player names to array
             }
-            TodayLog.WriteLine(); 
-            TodayLog.WriteLine("GAME RULE CHOSEN:  " + GameRule());
-            TodayLog.Close();
+            ItemsToWrite[4] = GameRule();
+            WriteTodayLog();
+            SpeakAndDisplay();
+            #endregion
 
-            string TodayLogContents = File.ReadAllText(TodayLogPath);
-            SpeechSynthesizer MonoSpeak  = new SpeechSynthesizer();
-            MonoSpeak.Rate = 4;
+            TimeSpan elapsed = GameTimer();
+            ItemsToWrite[5] = elapsed.Hours + "H " + elapsed.Minutes + "M " + elapsed.Seconds + "S";
 
-            Stopwatch MonoTimer = new Stopwatch();  
-            Console.WriteLine(TodayLogContents);
-            MonoSpeak.SpeakAsync(TodayLogContents);
+            double Assets = GetNumber("\n \nHow much was your Total assets?\n(0 if you went bankrupt.)  $", 0, 99999);
+            ItemsToWrite[6] = "$" + Assets.ToString();
 
+            WriteTodayLog(7);
+            WriteFullLog();
+        }
+
+        static TimeSpan GameTimer()
+        {
+            Stopwatch MonoTimer = new Stopwatch();
             Console.WriteLine("\n======= Press a key to start the game timer =======");
             Console.ReadKey();
             Console.Write("TIMER:  STARTED\t\t");
@@ -123,16 +137,40 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
             Console.ReadKey();
             Console.Write("TIMER:  STOPPED");
             MonoTimer.Stop();
-            TimeSpan elapsed = MonoTimer.Elapsed;
 
-            StreamWriter AddToLog = new StreamWriter(TodayLogPath, true);  //open a file for writing
-            AddToLog.WriteLine($"    Elapsed Time:  {elapsed.Hours} hours, {elapsed.Minutes} minutes, {elapsed.Seconds} seconds");
-            AddToLog.WriteLine("\n--------------------------------------------------\n");
-            AddToLog.Close();
-
-            TodayLogContents = File.ReadAllText(TodayLogPath);
-            File.AppendAllText(FullLogPath, TodayLogContents);
+            return MonoTimer.Elapsed;
         }
-    
+
+        static void WriteTodayLog(int Index=4)
+        {
+            StreamWriter TodayLog = new System.IO.StreamWriter(TodayLogPath);  //open a file for writing
+            for (int i = 0;i < Index; i++)
+            {
+                TodayLog.WriteLine(HeadersToWrite[i] + "  " + ItemsToWrite[i]);
+            }
+            TodayLog.WriteLine("\n==================================================\n");
+            TodayLog.Close();
+        }
+
+        static void SpeakAndDisplay(int Index = 4)
+        {
+            SpeechSynthesizer MonoSpeak = new SpeechSynthesizer();
+            MonoSpeak.Rate = 4;
+            Console.WriteLine();
+            for (int i = 0; i < Index; i++)
+            {
+                Console.WriteLine(HeadersToWrite[i] + "  " + ItemsToWrite[i]);
+                MonoSpeak.SpeakAsync(HeadersToWrite[i] + ".  " + ItemsToWrite[i]);
+            }
+
+        }
+
+        static void WriteFullLog()        
+        {
+            StreamWriter FullLog = new System.IO.StreamWriter(FullLogPath, true);  //open a file for writing
+            FullLog.WriteLine(string.Join(",", ItemsToWrite));
+            FullLog.Close();
+        }
+
     } //end class
 } //end namespace
