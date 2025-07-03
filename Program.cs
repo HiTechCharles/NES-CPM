@@ -59,7 +59,7 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
 
         static double GetNumber(String Prompt, int Low, int High)  //get a number from thee user
         {
-            string line; double rtn = 0;  //line read and number returned
+            string line; double rtn;  //line read and number returned
             while (true)  //loop until valid input
             {
                 Console.Write(Prompt);  //display prompt message before getting input
@@ -86,7 +86,7 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
             return rtn;  //return number, all checks passed
         }
 
-        static void Main(string[] args)
+        static void Main()
         {
             Console.Title = "Computer Picker for NES Monopoly";  //console title
             Console.ForegroundColor = ConsoleColor.White;  //text color for console
@@ -113,38 +113,75 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
                 ItemsToWrite[3] += GetPlayer() + " - ";  //write player names to array
             }
             ItemsToWrite[4] = GameRule();
-            WriteTodayLog();
-            SpeakAndDisplay();
+            WriteTodayLog(true);
+            SpeakAndDisplay(true);
             #endregion
 
-            TimeSpan elapsed = GameTimer();
+            TimeSpan elapsed = GameTimer(3 * NumCPU);
             ItemsToWrite[5] = elapsed.Hours + "H " + elapsed.Minutes + "M " + elapsed.Seconds + "S";
 
             double Assets = GetNumber("\n \nHow much was your Total assets?\n(0 if you went bankrupt.)  $", 0, 99999);
-            ItemsToWrite[6] = "$" + Assets.ToString();
+            ItemsToWrite[6] = "$" + Assets.ToString("n2");
 
-            WriteTodayLog(7);
+            WriteTodayLog(false);
             WriteFullLog();
         }
 
-        static TimeSpan GameTimer()
+        static TimeSpan GameTimer(double DisplayInterval)  //time how long the game takes
         {
+            bool KeyPressed = false;  //timer stops on keypress
+            TimeSpan interval = TimeSpan.FromMinutes(DisplayInterval);  //display timer every so often
+            TimeSpan lastDisplayed = TimeSpan.Zero;  //last time the elapsed time was shown
             Stopwatch MonoTimer = new Stopwatch();
-            Console.WriteLine("\n======= Press a key to start the game timer =======");
-            Console.ReadKey();
-            Console.Write("TIMER:  STARTED\t\t");
-            MonoTimer.Start();
-            Console.ReadKey();
-            Console.Write("TIMER:  STOPPED");
-            MonoTimer.Stop();
+            SpeechSynthesizer MonoSpeak = new SpeechSynthesizer
+            {
+                Rate = 3 
+            }; 
 
+            Console.WriteLine("\n=============== PRESS A KEY TO START THE  TIMER ===============");
+            Console.WriteLine("Elapsed time will be displayed and spoken every " + DisplayInterval.ToString() + " minutes.");
+            Console.ReadKey(false);  //press key to start 
+            Console.Write("TIMER:  STARTED\t\tELAPSED TIME:  ");
+            MonoSpeak.SpeakAsync("Timer Started!"); 
+            MonoTimer.Start(); // Start the timer
+
+            while (!KeyPressed)
+            {
+                if (MonoTimer.Elapsed - lastDisplayed >= interval)
+                {
+                    Console.Write(MonoTimer.Elapsed.TotalMinutes.ToString("f0") + " "); 
+                    MonoSpeak.SpeakAsync($"Elapsed time: {MonoTimer.Elapsed.TotalMinutes:F0} minutes");
+                    lastDisplayed = MonoTimer.Elapsed;
+                }
+
+                if (Console.KeyAvailable)
+                {
+                    Console.ReadKey(true); // Capture key without echoing
+                    KeyPressed = true;
+                }
+            }
+
+            Console.Write("\t\tTIMER:  STOPPED");
+            MonoSpeak.SpeakAsync("TIMER:  STOPPED");
+            MonoTimer.Stop();
             return MonoTimer.Elapsed;
         }
 
-        static void WriteTodayLog(int Index=4)
+        static void WriteTodayLog(bool Partial = true)
         {
+            int Index;
+
+            if ( Partial == true )
+            { 
+                Index = 4;
+            }
+            else
+            {
+                Index = 6;
+            }
+
             StreamWriter TodayLog = new System.IO.StreamWriter(TodayLogPath);  //open a file for writing
-            for (int i = 0;i < Index; i++)
+            for (int i = 0;i <=Index; i++)
             {
                 TodayLog.WriteLine(HeadersToWrite[i] + "  " + ItemsToWrite[i]);
             }
@@ -152,17 +189,28 @@ namespace CPM  //Computer Picker for Monopoly, this won't work on apple II or IB
             TodayLog.Close();
         }
 
-        static void SpeakAndDisplay(int Index = 4)
+        static void SpeakAndDisplay(bool Partial = true)
         {
-            SpeechSynthesizer MonoSpeak = new SpeechSynthesizer();
+            var MonoSpeak = new SpeechSynthesizer();
             MonoSpeak.Rate = 4;
             Console.WriteLine();
-            for (int i = 0; i < Index; i++)
+
+            int Index;
+
+            if (Partial == true)
+            {
+                Index = 4;
+            }
+            else
+            {
+                Index = 6;
+            }
+
+            for (int i = 0; i <= Index; i++)
             {
                 Console.WriteLine(HeadersToWrite[i] + "  " + ItemsToWrite[i]);
                 MonoSpeak.SpeakAsync(HeadersToWrite[i] + ".  " + ItemsToWrite[i]);
             }
-
         }
 
         static void WriteFullLog()        
